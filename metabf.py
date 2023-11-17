@@ -1,6 +1,6 @@
 
 BF_CHARS="+-<>[].,"
-SPECIAL_CHARS="(){}:=&|!~*/%^?#$@\\',;"
+SPECIAL_CHARS="(){}:=&|!~*/%^?#$@\\';"
 DIGITS="0123456789"
 
 TOKEN_BF="bf"
@@ -75,8 +75,8 @@ def getItems(token,variables):
   if token.type==TOKEN_NUMBER:
     return map(lambda i:Token(TOKEN_NUMBER,i),range(token.value))
 
-def compileTokens(tokens,variables={},stack=[]):
-  valueStack=[*stack]
+def compileTokens(tokens,variables={},stack=None):
+  valueStack=[] if stack is None else stack
   tokenBuffer=[]
   depth=0
   for token in tokens:
@@ -184,8 +184,14 @@ def compileTokens(tokens,variables={},stack=[]):
         valueStack.append(Token(l.type,l.value%r.value))
         continue
       raise Exception(f"incompatible types for remainder {l.type} and {r.type}")
+    if token.value=="?": ## evaluate string as code
+      v=getValue(valueStack.pop(),variables)
+      if v.type == TOKEN_STRING:
+        yield from compileTokens(tokenize(v.value),variables,valueStack)
+        continue
+      raise Exception(f"invalid type for code evaluation {v.type}")
     
-    # unused operators ^?$@\\',;
+    # unused operators ^$@\';
     ## XXX other operators: arithmetic operations, eval, join values to array
     raise Exception(f"unknown operator: '{token.value}'")
 
