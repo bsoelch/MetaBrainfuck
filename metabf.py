@@ -13,10 +13,8 @@ class Token:
   def __init__(self,type,value):
     self.type=type
     self.value=value
-  
   def __repr__(self):
     return f"{self.type}: {repr(self.value)}"
-  
 
 def tokenize(code):
   buff=""
@@ -66,7 +64,7 @@ def getValue(token,variables):
   if token.type==TOKEN_STRING or token.type==TOKEN_NUMBER:
     return token
   raise Exception(f"tokens of {token.type} do not hold a value")
-  
+
 def getItems(token,variables):
   if token.type==TOKEN_IDENTIFIER:
     return getItems(variables[token.value],variables)
@@ -190,7 +188,7 @@ def compileTokens(tokens,variables={},stack=None):
         yield from compileTokens(tokenize(v.value),variables,valueStack)
         continue
       raise Exception(f"invalid type for code evaluation {v.type}")
-    
+
     # unused operators ^$@\';
     ## XXX other operators: arithmetic operations, eval, join values to array
     raise Exception(f"unknown operator: '{token.value}'")
@@ -198,6 +196,63 @@ def compileTokens(tokens,variables={},stack=None):
 def compile(code):
   yield from compileTokens(tokenize(code),{})
 
-## TODO execute code from generator, (only store reachable part of previous code)
 
+import sys
 
+## execute code from generate
+def interpretBF(code):
+  memory=dict()
+  mp=0
+  codeBuffer=[] ## code since the first currently open bracket
+  codeStack=[]
+  ip=0
+  skipDepth=0
+  try:
+    while 1:
+      if ip<len(codeBuffer):
+        op=codeBuffer[ip]
+      else:
+        op=next(code)
+        codeBuffer.append(op)
+      if skipDepth>0:
+        if op=="[":
+          skipDepth+=1
+        elif op=="]":
+          skipDepth-=1
+      else:
+        if op==">":
+          mp+=1
+        elif op=="<":
+          mp-=1
+        elif op=="+":
+          prev=memory[mp] if mp in memory else 0
+          memory[mp]=(prev+1)&255
+        elif op=="-":
+          prev=memory[mp] if mp in memory else 0
+          memory[mp]=(prev-1)&255
+        elif op==".":
+          prev=memory[mp] if mp in memory else 0
+          sys.stdout.buffer.write(bytes([prev&255])) ## write cell value modulo 256 to stdout
+        elif op==",":
+          ## TODO read from stdin
+          memory[mp]=0
+        elif op in "[":
+          prev=memory[mp] if mp in memory else 0
+          if prev!=0:
+            codeStack.append(len(codeStack))
+          else:
+            skipDepth=1
+        elif op in "]":
+          prev=memory[mp] if mp in memory else 0
+          if prev!=0:
+            ip=codeStack[-1]
+          else:
+            codeStack.pop()
+      if len(codeStack)==0:
+        codeBuffer.clear()
+      ip+=1
+  except StopIteration:pass
+
+## TODO read from file options :
+## -o  compile to file (default out.bf)
+## -x  execute code instead of compiling
