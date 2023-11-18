@@ -1,3 +1,5 @@
+import sys
+import argparse
 
 BF_CHARS="+-<>[].,"
 SPECIAL_CHARS="(){}:=&|!~*/%^?#$@\\';"
@@ -185,19 +187,19 @@ def compileTokens(tokens,variables={},stack=None):
     if token.value=="?": ## evaluate string as code
       v=getValue(valueStack.pop(),variables)
       if v.type == TOKEN_STRING:
-        yield from compileTokens(tokenize(v.value),variables,valueStack)
+        if not hasattr(v, 'tokens'): ## parse tokens on first call, reuse tokens for subsequent calls
+          v.tokens = [*tokenize(v.value)]
+        ## XXX? optimize tail calls
+        yield from compileTokens(v.tokens,variables,valueStack)
         continue
       raise Exception(f"invalid type for code evaluation {v.type}")
-
     # unused operators ^$@\';
-    ## XXX other operators: arithmetic operations, eval, join values to array
+    ## XXX other operators: ? join values to array
     raise Exception(f"unknown operator: '{token.value}'")
 
 def compile(code):
   yield from compileTokens(tokenize(code),{})
 
-
-import sys
 
 ## execute code from generate
 def interpretBF(code):
@@ -253,6 +255,37 @@ def interpretBF(code):
       ip+=1
   except StopIteration:pass
 
-## TODO read from file options :
-## -o  compile to file (default out.bf)
-## -x  execute code instead of compiling
+def main():
+  parser=argparse.ArgumentParser()
+  parser.add_argument('-f', '--src')
+  parser.add_argument('-o', '--out')
+  parser.add_argument('-N', '--maxCount', type=int)
+  parser.add_argument('-x', dest='execute',action='store_true')
+  parser.add_argument('params', nargs='*')
+  args=parser.parse_args()
+  params=[parseParam(p,args.in_mode) for p in args.params]
+  src=args.src
+  if src is None:
+    src="./test.mbf"
+  with open(src, encoding="utf-8") as f:
+    code = f.read()
+  compiled=compile(code)
+  if args.out is not None:
+    N=args.maxCount
+    if N is None:
+      N=65536
+    with open(args.out, encoding="utf-8", mode="w") as f:
+      N0=N
+      for c in compiled:
+        if N<=0:
+          print(f"Exceeded maximum allowed program length ({N0} characters) use the -N flag to increase the limit")
+          break
+        f.write(c)
+        N-=1
+    if args.execute: ## reset iterator if in execute mode
+      compiled=compile(code)
+  if args.execute:
+    interpretBF(compiled)
+
+if __name__ == "__main__":
+  main()
