@@ -96,8 +96,9 @@ def compileTokens(tokens,variables={},stack=None):
         tokenBuffer.append(token)
         continue
       loopSrc=valueStack.pop()
-      for e in getItems(loopSrc,variables): ## XXX use code stack instead of recursion
-        yield from compileTokens(tokenBuffer,variables,[e])
+      for e in getItems(loopSrc,variables): ## XXX? use code stack instead of recursion
+        valueStack.append(e)
+        yield from compileTokens(tokenBuffer,variables,valueStack)
       tokenBuffer=[]
       continue
     if token.type==TOKEN_BF:
@@ -156,6 +157,12 @@ def compileTokens(tokens,variables={},stack=None):
       l=getValue(valueStack.pop(),variables)
       if (l.type == TOKEN_STRING and r.type == TOKEN_STRING) or (l.type == TOKEN_NUMBER and r.type == TOKEN_NUMBER):
         valueStack.append(Token(l.type,l.value+r.value))
+        continue
+      if l.type == TOKEN_STRING and r.type == TOKEN_NUMBER:
+        valueStack.append(Token(TOKEN_STRING,l.value+chr(r.value)))
+        continue
+      if l.type == TOKEN_NUMBER and r.type == TOKEN_STRING:
+        valueStack.append(Token(TOKEN_STRING,chr(l.value)+r.value))
         continue
       raise Exception(f"incompatible types for addtion {l.type} and {r.type}")
     if token.value=="~":
