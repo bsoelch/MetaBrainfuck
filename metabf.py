@@ -2,7 +2,7 @@ import sys
 import argparse
 
 BF_CHARS="+-<>[].,"
-SPECIAL_CHARS="(){}:=&|!~*/%^?#$@\\';"
+SPECIAL_CHARS="(){}:=&|!~*/%^?#$@\\';`"
 DIGITS="0123456789"
 
 TOKEN_BF="bf"
@@ -122,7 +122,7 @@ def compileTokens(tokens,variables={},stack=None):
       l=getValue(valueStack.pop(),variables)
       valueStack.append(Token(TOKEN_NUMBER,int(l.type==r.type and l.value==r.value)))
       continue
-    if token.value=="(":
+    if token.value=="(": ## XXX? use different operator for comparison
       r=getValue(valueStack.pop(),variables)
       l=getValue(valueStack.pop(),variables)
       valueStack.append(Token(TOKEN_NUMBER,int(l.type==r.type and l.value<r.value)))
@@ -179,7 +179,9 @@ def compileTokens(tokens,variables={},stack=None):
       if l.type == TOKEN_NUMBER and r.type == TOKEN_NUMBER:
         valueStack.append(Token(l.type,l.value*r.value))
         continue
-      ## XXX string*int int*string -> string repetition
+      if (l.type == TOKEN_STRING and r.type == TOKEN_NUMBER) or (l.type == TOKEN_NUMBER and r.type == TOKEN_STRING):
+        valueStack.append(Token(TOKEN_STRING,l.value*r.value))
+        continue
       raise Exception(f"incompatible types for multiplication {l.type} and {r.type}")
     if token.value=="/":
       r=getValue(valueStack.pop(),variables)
@@ -203,8 +205,7 @@ def compileTokens(tokens,variables={},stack=None):
         codeStack.extend(reversed(v.tokens))
         continue
       raise Exception(f"invalid type for code evaluation {v.type}")
-    # unused operators ^$@\';
-    ## XXX other operators: ? join values to array
+    # unused operators ^$@\';`
     raise Exception(f"unknown operator: '{token.value}'")
   except StopIteration:pass
 

@@ -45,7 +45,8 @@ String and number literals push the corresponding value onto the stack.
 ### Loops
 
 `{}` takes the top stack value and executes the coded surrounded by the brackets for each element of that value (characters in string, numbers from zero to value if integer),
-the iteration variable is pushed onto the stack at the start of each iteration, the stack within the loop is independent of the stack outside of the loop.
+the iteration variable is pushed onto the stack at the start of each iteration
+
 Examples:
 
 * `3{+}`  expands to `+++`
