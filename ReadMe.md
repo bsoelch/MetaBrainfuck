@@ -73,8 +73,6 @@ unary operators:
 binary operators:
 
 * `=` equality check
-* `(` `a b (` -> `1` if `a<b` otherwise `0`
-* `)` `a b )` -> `1` if `a>b` otherwise `0`
 * `&` minimum
 * `|` maximum
 * `#` addition  `a b #` -> `a+b`
