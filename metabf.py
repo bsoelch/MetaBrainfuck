@@ -76,10 +76,14 @@ def getItems(token,variables):
     return map(lambda i:Token(TOKEN_NUMBER,i),range(token.value))
 
 def compileTokens(tokens,variables={},stack=None):
+  tokens=iter(tokens) ## ensure tokes is a generator
   valueStack=[] if stack is None else stack
   tokenBuffer=[]
+  codeStack=[]
   depth=0
-  for token in tokens:
+  try:
+   while 1:
+    token=codeStack.pop() if len(codeStack)>0 else next(tokens)
     if depth>0:
       if token.type!=TOKEN_OPERATOR:
         tokenBuffer.append(token)
@@ -92,7 +96,7 @@ def compileTokens(tokens,variables={},stack=None):
         tokenBuffer.append(token)
         continue
       loopSrc=valueStack.pop()
-      for e in getItems(loopSrc,variables):
+      for e in getItems(loopSrc,variables): ## XXX use code stack instead of recursion
         yield from compileTokens(tokenBuffer,variables,[e])
       tokenBuffer=[]
       continue
@@ -189,13 +193,13 @@ def compileTokens(tokens,variables={},stack=None):
       if v.type == TOKEN_STRING:
         if not hasattr(v, 'tokens'): ## parse tokens on first call, reuse tokens for subsequent calls
           v.tokens = [*tokenize(v.value)]
-        ## XXX? optimize tail calls
-        yield from compileTokens(v.tokens,variables,valueStack)
+        codeStack.extend(reversed(v.tokens))
         continue
       raise Exception(f"invalid type for code evaluation {v.type}")
     # unused operators ^$@\';
     ## XXX other operators: ? join values to array
     raise Exception(f"unknown operator: '{token.value}'")
+  except StopIteration:pass
 
 def compile(code):
   yield from compileTokens(tokenize(code),{})
