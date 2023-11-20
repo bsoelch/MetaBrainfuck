@@ -209,8 +209,8 @@ def compileTokens(tokens,variables={},stack=None):
     raise Exception(f"unknown operator: '{token.value}'")
   except StopIteration:pass
 
-def compile(code):
-  yield from compileTokens(tokenize(code),{})
+def compile(code,stack=None):
+  yield from compileTokens(tokenize(code),{},stack)
 
 
 ## execute code from generate
@@ -275,13 +275,13 @@ def main():
   parser.add_argument('-x', dest='execute',action='store_true')
   parser.add_argument('params', nargs='*')
   args=parser.parse_args()
-  params=[parseParam(p,args.in_mode) for p in args.params]
+  params=[Token(TOKEN_STRING,p) for p in reversed(args.params)]
   src=args.src
   if src is None:
     src="./test.mbf"
   with open(src, encoding="utf-8") as f:
     code = f.read()
-  compiled=compile(code)
+  compiled=compile(code,[*params])
   if args.out is not None:
     N=args.maxCount
     if N is None:
@@ -295,7 +295,7 @@ def main():
         f.write(c)
         N-=1
     if args.execute: ## reset iterator if in execute mode
-      compiled=compile(code)
+      compiled=compile(code,params)
   if args.execute:
     interpretBF(compiled)
 

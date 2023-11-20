@@ -32,6 +32,8 @@ optional additional flags:
 * `-f <source-file>` set the source file (the default is `./test.mbf`)
 * `-N <number>`  sets the maximum length (in characters) of the created output file, the default is `65536` 
 
+All additional flags are program arguments and will be pushed onto the stack, with the first argument being on top
+
 ## Syntax
 
 Each brainfuck command (`+-<>[].,`) will add itself to the output program.
